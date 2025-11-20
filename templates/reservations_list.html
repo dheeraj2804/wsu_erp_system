@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="mb-1">Reservations</h2>
+    {% if is_staff %}
+      <small class="text-muted">
+        Review all student reservations and convert approved ones into loans.
+      </small>
+    {% else %}
+      <small class="text-muted">
+        View and manage your equipment reservation requests.
+      </small>
+    {% endif %}
+  </div>
+
+  {% if not is_staff %}
+  <a href="{{ url_for('reservations_create') }}" class="btn btn-primary btn-sm">
+    + New Reservation
+  </a>
+  {% endif %}
+</div>
+
+<!-- React summary root -->
+<div id="reservations-summary-root" class="mb-4"></div>
+
+<!-- JSON-safe summary from backend -->
+<script>
+  window.RESERVATIONS_DATA = {{ reservations_summary|tojson }};
+</script>
+
+{% raw %}
+<script type="text/babel">
+  const { useMemo } = React;
+
+  function ReservationsSummary() {
+    const data = window.RESERVATIONS_DATA || [];
+
+    const stats = useMemo(() => {
+      const result = { total: 0, Pending: 0, Approved: 0, Denied: 0 };
+      result.total = data.length;
+      data.forEach(r => {
+        if (r.status && result.hasOwnProperty(r.status)) {
+          result[r.status] += 1;
+        }
+      });
+      return result;
+    }, [data]);
+
+    return (
+      <div className="row g-3">
+        <div className="col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <div className="text-muted small text-uppercase">Total</div>
+              <div className="fs-4 fw-semibold">{stats.total}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <div className="text-muted small text-uppercase">Pending</div>
+              <div className="fs-4 fw-semibold text-warning">{stats.Pending}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <div className="text-muted small text-uppercase">Approved</div>
+              <div className="fs-4 fw-semibold text-success">{stats.Approved}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3">
+          <div className="card shadow-sm border-0 h-100">
+            <div className="card-body">
+              <div className="text-muted small text-uppercase">Denied</div>
+              <div className="fs-4 fw-semibold text-danger">{stats.Denied}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const resRootEl = document.getElementById("reservations-summary-root");
+  if (resRootEl) {
+    const resRoot = ReactDOM.createRoot(resRootEl);
+    resRoot.render(<ReservationsSummary />);
+  }
+</script>
+{% endraw %}
+
+{% if reservations %}
+<div class="card shadow-sm mt-3">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Status</th>
+          {% if is_staff %}<th class="text-end">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservations %}
+        <tr
+          class="
+            {% if r.status == 'Approved' %}table-success-subtle
+            {% elif r.status == 'Pending' %}table-warning-subtle
+            {% elif r.status == 'Denied' %}table-danger-subtle
+            {% endif %}
+          "
+        >
+          <td>{{ r.reservation_id }}</td>
+          <td>{{ r.user.full_name }}</td>
+          <td>{{ r.start_date }}</td>
+          <td>{{ r.end_date }}</td>
+          <td>
+            <span class="badge
+              {% if r.status == 'Approved' %}bg-success
+              {% elif r.status == 'Pending' %}bg-warning text-dark
+              {% elif r.status == 'Denied' %}bg-danger
+              {% else %}bg-secondary{% endif %}
+            ">
+              {{ r.status }}
+            </span>
+          </td>
+
+          {% if is_staff %}
+          <td class="text-end">
+            <a href="{{ url_for('reservation_detail', reservation_id=r.reservation_id) }}"
+               class="btn btn-sm btn-outline-secondary mb-1">
+              View
+            </a>
+
+            <form action="{{ url_for('reservation_set_status', reservation_id=r.reservation_id) }}"
+                  method="post" class="d-inline">
+              <input type="hidden" name="status" value="Approved">
+              <button type="submit"
+                      class="btn btn-sm btn-success mb-1"
+                      {% if r.status == 'Approved' %}disabled{% endif %}>
+                Approve
+              </button>
+            </form>
+
+            <form action="{{ url_for('reservation_set_status', reservation_id=r.reservation_id) }}"
+                  method="post" class="d-inline">
+              <input type="hidden" name="status" value="Denied">
+              <button type="submit"
+                      class="btn btn-sm btn-outline-danger mb-1"
+                      {% if r.status == 'Denied' %}disabled{% endif %}>
+                Deny
+              </button>
+            </form>
+
+            {% if r.status == 'Approved' and not r.loan %}
+            <a href="{{ url_for('loans_create', reservation_id=r.reservation_id) }}"
+               class="btn btn-sm btn-primary mb-1">
+              Create Loan
+            </a>
+            {% elif r.loan %}
+            <span class="badge bg-info text-dark mb-1">
+              Loan #{{ r.loan.loan_id }}
+            </span>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card shadow-sm mt-3">
+  <div class="card-body text-center py-5">
+    <h5 class="card-title mb-3">
+      {% if is_staff %}
+        No reservations found
+      {% else %}
+        You don't have any reservations yet
+      {% endif %}
+    </h5>
+    <p class="text-muted mb-4">
+      {% if is_staff %}
+        Reservations will appear here once students submit requests.
+      {% else %}
+        Use the button above to request equipment for a specific time window.
+      {% endif %}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title mb-3">{{ action }} Equipment</h3>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" type="text" name="name" value="{{ item.name if item else '' }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+            <input class="form-control" type="text" name="category" value="{{ item.category if item else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Serial No</label>
+            <input class="form-control" type="text" name="serial_no" value="{{ item.serial_no if item else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Condition</label>
+            <input class="form-control" type="text" name="condition" value="{{ item.condition if item else 'Good' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Location</label>
+            <input class="form-control" type="text" name="location" value="{{ item.location if item else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Daily Limit</label>
+            <input class="form-control" type="number" name="daily_limit" value="{{ item.daily_limit if item else 1 }}">
+          </div>
+          <button class="btn btn-primary" type="submit">{{ action }}</button>
+          <a class="btn btn-light" href="{{ url_for('equipment_list') }}">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

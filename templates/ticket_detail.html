@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="mb-3">Ticket #{{ ticket.ticket_id }}</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Ticket Info</h5>
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Equipment</dt>
+          <dd class="col-sm-8">{{ ticket.equipment.name }}</dd>
+
+          <dt class="col-sm-4">Severity</dt>
+          <dd class="col-sm-8">
+            <span class="badge
+              {% if ticket.severity == 'Low' %}bg-secondary
+              {% elif ticket.severity == 'Medium' %}bg-info text-dark
+              {% elif ticket.severity == 'High' %}bg-warning text-dark
+              {% elif ticket.severity == 'Critical' %}bg-danger
+              {% else %}bg-secondary{% endif %}
+            ">
+              {{ ticket.severity }}
+            </span>
+          </dd>
+
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            <span class="badge
+              {% if ticket.status == 'Open' %}bg-warning text-dark
+              {% elif ticket.status == 'In Progress' %}bg-info text-dark
+              {% elif ticket.status == 'Closed' %}bg-success
+              {% else %}bg-secondary{% endif %}
+            ">
+              {{ ticket.status }}
+            </span>
+          </dd>
+
+          <dt class="col-sm-4">Opened By</dt>
+          <dd class="col-sm-8">{{ ticket.opened_by_user.full_name }}</dd>
+
+          <dt class="col-sm-4">Assigned To</dt>
+          <dd class="col-sm-8">
+            {{ ticket.assigned_to_user.full_name if ticket.assigned_to_user else '—' }}
+          </dd>
+
+          <dt class="col-sm-4">Opened At</dt>
+          <dd class="col-sm-8">{{ ticket.opened_at }}</dd>
+
+          {% if ticket.closed_at %}
+          <dt class="col-sm-4">Closed At</dt>
+          <dd class="col-sm-8">{{ ticket.closed_at }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Update Status / Assignment</h5>
+        <form method="POST" action="{{ url_for('ticket_edit', ticket_id=ticket.ticket_id) }}">
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              {% for s in ['Open', 'In Progress', 'Closed'] %}
+              <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Assigned To</label>
+            <select name="assigned_to" class="form-select">
+              <option value="">-- Unassigned --</option>
+              {% for u in users %}
+              <option value="{{ u.user_id }}"
+                {% if ticket.assigned_to == u.user_id %}selected{% endif %}>
+                {{ u.full_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-sm">
+            Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Add Update</h5>
+        <form method="POST" action="{{ url_for('ticket_detail', ticket_id=ticket.ticket_id) }}">
+          <div class="mb-3">
+            <textarea name="note" class="form-control" rows="3"
+                      placeholder="Describe what was done or what needs to be checked..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline-secondary btn-sm">
+            Add Update
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Update History</h5>
+    {% if updates %}
+    <ul class="list-group list-group-flush">
+      {% for u in updates %}
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between">
+          <div>
+            <strong>{{ u.updated_by_user.full_name }}</strong>
+            <span class="text-muted small ms-2">{{ u.added_at }}</span>
+          </div>
+        </div>
+        <div class="mt-1">
+          {{ u.note }}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted mb-0">No updates yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<a href="{{ url_for('tickets_list') }}" class="btn btn-link mt-3">&laquo; Back to Tickets</a>
+
+{% endblock %}

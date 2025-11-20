@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Create Service Ticket</h3>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Equipment</label>
+            <select class="form-select" name="equipment_id" required>
+              {% for e in equipment %}
+              <option value="{{ e.equipment_id }}">
+                {{ e.name }}{% if e.category %} ({{ e.category }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Severity</label>
+            <select class="form-select" name="severity">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Assigned To (optional)</label>
+            <select class="form-select" name="assigned_to">
+              <option value="">-- Unassigned --</option>
+              {% for u in users %}
+              <option value="{{ u.user_id }}">{{ u.full_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="4"></textarea>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Create Ticket</button>
+          <a class="btn btn-light" href="{{ url_for('tickets_list') }}">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

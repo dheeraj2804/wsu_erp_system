@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="card-title mb-3">
+          Create Loan for Reservation #{{ reservation.reservation_id }}
+        </h3>
+        <p><strong>User:</strong> {{ reservation.user.full_name }}</p>
+        <p><strong>Reservation Window:</strong> {{ reservation.start_date }} → {{ reservation.end_date }}</p>
+
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Due Date/Time</label>
+            <input class="form-control" type="datetime-local" name="due_at" required>
+            <div class="form-text">
+              Typically a few days after checkout, depending on policy.
+            </div>
+          </div>
+          <button class="btn btn-primary" type="submit">Create Loan</button>
+          <a class="btn btn-light" href="{{ url_for('loans_list') }}">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

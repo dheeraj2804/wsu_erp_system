@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="dashboard-root"></div>
+
+<!-- Expose role info to React -->
+<script>
+  window.IS_STAFF = {{ 'true' if is_staff else 'false' }};
+</script>
+
+<script type="text/babel">
+{% raw %}
+
+  const { useEffect, useState } = React;
+
+  let reservationsChart = null;
+
+  function drawChart(labels, values) {
+    const canvas = document.getElementById("reservationsChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    if (reservationsChart) {
+      reservationsChart.destroy();
+    }
+
+    reservationsChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Reservations",
+            data: values,
+            backgroundColor: "rgba(54, 162, 235, 0.5)",
+            borderColor: "rgba(54, 162, 235, 1)",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function DashboardApp() {
+    const [labels, setLabels] = useState([]);
+    const [values, setValues] = useState([]);
+
+    useEffect(() => {
+      fetch("/api/stats/reservations_by_equipment")
+        .then((r) => r.json())
+        .then((data) => {
+          const labs = data.labels || [];
+          const vals = data.values || [];
+          setLabels(labs);
+          setValues(vals);
+          drawChart(labs, vals);
+        })
+        .catch((err) => {
+          console.error("Error loading stats:", err);
+        });
+    }, []);
+
+    const equipmentCount = labels.length;
+    const totalReservations = values.reduce((a, b) => a + b, 0);
+
+    // Read staff flag from window
+    const isStaff =
+      window.IS_STAFF === true || window.IS_STAFF === "true";
+
+    return (
+      <div className="py-3">
+        <h1 className="mb-2">Dashboard</h1>
+        <p className="text-muted mb-4">
+          React-powered overview of reservations by equipment.
+        </p>
+
+        <div className="row g-3 mb-4">
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-body">
+                <div className="text-uppercase text-muted small mb-1">
+                  Equipment with Reservations
+                </div>
+                <div className="display-6 fw-semibold">
+                  {equipmentCount}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-body">
+                <div className="text-uppercase text-muted small mb-1">
+                  Total Reservations
+                </div>
+                <div className="display-6 fw-semibold">
+                  {totalReservations}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <div className="card shadow-sm h-100">
+              <div className="card-body d-flex flex-column justify-content-between">
+                <div>
+                  <div className="text-uppercase text-muted small mb-1">
+                    Quick Actions
+                  </div>
+
+                  {isStaff ? (
+                    <p className="mb-3">
+                      Manage equipment inventory quickly.
+                    </p>
+                  ) : (
+                    <p className="mb-3">
+                      Need equipment? Create a new reservation right
+                      away.
+                    </p>
+                  )}
+                </div>
+
+                {isStaff ? (
+                  <a
+                    href="/equipment/create"
+                    className="btn btn-primary align-self-start"
+                  >
+                    + Add Equipment
+                  </a>
+                ) : (
+                  <a
+                    href="/reservations/create"
+                    className="btn btn-primary align-self-start"
+                  >
+                    + New Reservation
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <h5 className="card-title mb-1">
+              Reservations per Equipment
+            </h5>
+            <p className="text-muted mb-3">
+              Overview of how frequently each item is reserved.
+            </p>
+
+            <div style={{ height: "320px" }}>
+              <canvas id="reservationsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("dashboard-root")).render(
+    <DashboardApp />
+  );
+
+{% endraw %}
+</script>
+
+{% endblock %}

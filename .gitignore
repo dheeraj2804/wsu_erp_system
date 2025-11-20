@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# SQLite database
+*.db
+
+# Flask instance folder
+instance/
+
+# macOS
+.DS_Store

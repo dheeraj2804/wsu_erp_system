@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-0">Create Loan</h1>
+    <p class="text-muted mb-0">
+      Issue equipment to the student and set a due date. Overdue fees will be
+      calculated automatically when the item is returned.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Loan Details</h5>
+
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label" for="checked_out_at">
+              Checked Out At
+            </label>
+            <input
+              type="datetime-local"
+              class="form-control"
+              id="checked_out_at"
+              name="checked_out_at"
+              value="{{ default_checked_out }}"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="due_at">
+              Due At
+            </label>
+            <input
+              type="datetime-local"
+              class="form-control"
+              id="due_at"
+              name="due_at"
+              value="{{ default_due }}"
+              required
+            />
+            <div class="form-text">
+              Current policy: <strong>$10 per day</strong> after this due date
+              if the equipment is returned late.
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              Create Loan
+            </button>
+            <a href="{{ url_for('reservations_list') }}" class="btn btn-outline-secondary">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Reservation Summary</h5>
+
+        <dl class="row mb-0">
+          <dt class="col-4">Reservation</dt>
+          <dd class="col-8">#{{ reservation.reservation_id }}</dd>
+
+          <dt class="col-4">Student</dt>
+          <dd class="col-8">{{ reservation.user.full_name }}</dd>
+
+          <dt class="col-4">Window</dt>
+          <dd class="col-8">
+            {{ reservation.start_date.strftime("%Y-%m-%d %H:%M") }}
+            &rarr;
+            {{ reservation.end_date.strftime("%Y-%m-%d %H:%M") }}
+          </dd>
+
+          <dt class="col-4">Items</dt>
+          <dd class="col-8">
+            <ul class="mb-0 ps-3">
+              {% for item in reservation.items %}
+                <li>
+                  {{ item.equipment.name }}
+                  ({{ item.equipment.category }} — SN: {{ item.equipment.serial_number }})
+                </li>
+              {% endfor %}
+            </ul>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
