@@ -1,7 +1,30 @@
-# 📚 WSU ERP System — Equipment Reservation & Maintenance Portal
+# 📚 WSU ERP System — Equipment Reservation & Maintenance Portal  
+![GitHub Repo Size](https://img.shields.io/github/repo-size/dheeraj2804/wsu_erp_system?color=blue)
+![GitHub Last Commit](https://img.shields.io/github/last-commit/dheeraj2804/wsu_erp_system?color=yellow)
+![GitHub License](https://img.shields.io/badge/license-WSU--Academic-blue)
+![Python Version](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-Framework-red)
 
-This repository contains a fully functional **Equipment Reservation & Service Ticket Management System** built using **Python Flask**, **SQLite**, and **React-based UI components**.  
-It simulates Wichita State University's internal equipment loan center and provides **role-based access** for Students and Tech Staff.
+A full-stack web application designed for **equipment reservations, service ticket tracking, and loan management** at Wichita State University.  
+Provides **role-based access** for Students and Tech Staff with a modern UI + embedded React dashboard.
+
+---
+
+## 🖼️ Screenshots
+
+> *(Replace the image paths with your actual uploaded screenshots later)*
+
+### 🔹 Student Dashboard  
+![Student Dashboard](screenshots/student_dashboard.png)
+
+### 🔹 Tech Staff Dashboard  
+![Tech Staff Dashboard](screenshots/staff_dashboard.png)
+
+### 🔹 Reservation Form  
+![Reservation Form](screenshots/reservation_form.png)
+
+### 🔹 Service Tickets  
+![Tickets](screenshots/tickets_list.png)
 
 ---
 
@@ -10,86 +33,68 @@ It simulates Wichita State University's internal equipment loan center and provi
 ### 👥 User Roles
 
 #### **Student**
-- Create new equipment reservations  
-- View reservation history  
-- Submit service tickets when equipment is damaged  
-- Track the status of submitted tickets  
+- Reserve equipment  
+- Submit service tickets  
+- Track ticket status  
+- Check reservation history  
 
 #### **Tech Staff / Admin**
-- Approve or deny student reservations  
-- Create loans from approved reservations  
-- Set due dates and manage returns  
+- Approve/Deny reservations  
+- Create loans & mark returns  
 - Auto-calculate overdue fees  
 - Manage equipment inventory  
-- Assign and manage service tickets  
-- Access analytics dashboard (React-powered charts)
+- Assign service tickets to staff  
+- Track maintenance progress  
+- View analytics dashboard  
 
 ---
 
 ## 🛠 Tech Stack
 
-### Backend
+### Backend  
 - Python 3  
-- Flask  
-- Jinja2 Templates  
-- Flask-Login  
+- Flask + Jinja2  
 - SQLAlchemy ORM  
 - SQLite  
 
-### Frontend
-- Embedded React components  
+### Frontend  
+- React (embedded components)  
 - Chart.js analytics  
-- Bootstrap 5 styling  
+- Bootstrap 5  
 
-### Others
-- Git / GitHub Version Control  
-- Database seed script  
+### Tools  
+- Git / GitHub  
+- VS Code  
+- Flask-Login  
 
 ---
 
-## 🔧 System Architecture
+## 🧱 System Architecture
 
 ```
 WSU_ERP_System/
-│── app.py
-│── models.py
-│── seed.py
+│── app.py                # Main Flask app
+│── models.py             # SQLAlchemy models
+│── seed.py               # DB seeding script
 │── requirements.txt
-│── static/
-│── templates/
-│── instance/
-└── README.md
+│
+├── templates/            # Jinja2 + React-embedded templates
+│   ├── base.html
+│   ├── dashboard.html
+│   ├── reservations_list.html
+│   ├── ...
+│
+├── static/
+│   ├── main.css
+│   ├── react/            # React bundles (future)
+│
+├── instance/
+│── README.md
 ```
 
 ---
 
-## ✨ Key Functional Modules
-
-### Reservations
-- Students choose multiple equipment items  
-- Select start & end date  
-- Submit for approval  
-
-### Loans
-- Staff converts reservations → loans  
-- Staff selects custom due date  
-- System auto-calculates overdue fees  
-- Tracks loan status and returns  
-
-### Service Tickets
-- Students create maintenance tickets  
-- Staff assigns and manages them  
-- Supports status transitions  
-- Includes update notes and timeline  
-
-### Dashboard (React)
-- Charts: Reservations per equipment  
-- Stats: total reservations, equipment usage  
-- UI changes based on user role  
-
----
-
-## 🧪 How to Run Locally
+## 🔧 Installation
 
 ### 1. Clone repository
 ```bash
@@ -113,43 +118,61 @@ pip install -r requirements.txt
 flask init-db
 ```
 
-### 5. Seed the database
+### 5. Seed the DB
 ```bash
 python seed.py
 ```
 
-### 6. Start Flask server
+### 6. Start the server
 ```bash
 python app.py
 ```
 
-The app will run at:  
-**http://127.0.0.1:5000**
+Visit: **http://127.0.0.1:5000**
 
 ---
 
 ## 🔐 Default Login Accounts
 
 ### Student
-- Email: `student1@example.com`  
-- Password: `123456`
+- **Email:** `student1@example.com`  
+- **Password:** `123456`
 
 ### Tech Staff
-- Email: `staff1@example.com`  
-- Password: `123456`
+- **Email:** `staff1@example.com`  
+- **Password:** `123456`
 
 ---
 
-## 📈 Future Enhancements
-- Full React front-end  
-- Docker support  
-- JWT-based API  
-- Role management UI  
-- Equipment availability calendar  
-- Email alerts and notifications  
+## 🎥 Demo Workflow (Optional GIF)
 
+> *(Upload GIFs later in a `/screenshots` or `/demo` folder and update paths)*
+
+- `demo_reservation.gif`
+- `demo_loan.gif`
+- `demo_ticket.gif`
+
+---
+
+## 📈 Analytics Dashboard
+
+Powered by **React + Chart.js**  
+Displays:
+- Reservations per equipment  
+- Reservation trends  
+- Usage statistics  
+
+---
+
+## 📌 Future Enhancements
+- Full React single-page front-end  
+- Email notifications for approvals, overdue loans  
+- User profile management  
+- Equipment availability calendar view  
+- Docker deployment support  
 
 ---
 
 ## 📄 License
-This project is for Educational purposes only.
+This project is for **educational purposes **.
+
