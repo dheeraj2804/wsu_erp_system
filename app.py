@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+from sqlalchemy.exc import IntegrityError
 
 from flask import (
     Flask,
@@ -274,12 +275,23 @@ def equipment_create():
         return redirect(url_for("equipment_list"))
 
     if request.method == "POST":
-        name = request.form.get("name")
-        category = request.form.get("category")
-        serial_number = request.form.get("serial_number")
-        condition = request.form.get("condition") or "Good"
-        location = request.form.get("location")
-        daily_limit = int(request.form.get("daily_limit") or 1)
+        # Read and trim fields safely
+        name = (request.form.get("name") or "").strip()
+        category = (request.form.get("category") or "").strip()
+        # Accept both serial_number and serial_no just in case
+        serial_number = (request.form.get("serial_number") or request.form.get("serial_no") or "").strip()
+        condition = (request.form.get("condition") or "Good").strip() or "Good"
+        location = (request.form.get("location") or "").strip()
+        try:
+            daily_limit_raw = request.form.get("daily_limit") or "1"
+            daily_limit = int(daily_limit_raw)
+        except ValueError:
+            daily_limit = 1
+
+        # Simple validation for required fields
+        if not name or not category or not serial_number or not location:
+            flash("Name, category, serial number, and location are required.", "danger")
+            return redirect(url_for("equipment_create"))
 
         eq = Equipment(
             name=name,
@@ -294,7 +306,9 @@ def equipment_create():
         flash("Equipment added.", "success")
         return redirect(url_for("equipment_list"))
 
+    # GET -> render empty form
     return render_template("equipment_form.html", equipment=None)
+
 
 
 @app.route("/equipment/<int:equipment_id>/edit", methods=["GET", "POST"])

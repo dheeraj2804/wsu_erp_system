@@ -1,23 +1,27 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="row justify-content-center">
   <div class="col-md-6">
     <div class="card shadow-sm">
       <div class="card-body">
         <h3 class="card-title mb-3 text-center">Create Account</h3>
-        <p class="text-muted text-center">Register for the CERSP Portal</p>
+        <p class="text-muted text-center">Register for the WSU-ERP Portal</p>
         <form method="post">
           <div class="mb-3">
             <label class="form-label">Full Name</label>
-            <input class="form-control" type="text" name="full_name" required>
+            <input class="form-control" type="text" name="full_name" required />
           </div>
           <div class="mb-3">
             <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" required>
+            <input class="form-control" type="email" name="email" required />
           </div>
           <div class="mb-3">
             <label class="form-label">Password</label>
-            <input class="form-control" type="password" name="password" required>
+            <input
+              class="form-control"
+              type="password"
+              name="password"
+              required
+            />
           </div>
           <button class="btn btn-success w-100" type="submit">Register</button>
         </form>

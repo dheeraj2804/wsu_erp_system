@@ -1,37 +1,114 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-7">
+{% extends "base.html" %} {% block content %}
+<div class="d-flex justify-content-center">
+  <div class="col-lg-8 col-xl-6">
+    <h1 class="h3 mb-4">
+      {% if equipment %}Edit Equipment{% else %}Equipment{% endif %}
+    </h1>
+
     <div class="card shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">{{ action }} Equipment</h3>
-        <form method="post">
+        <form
+          method="POST"
+          action="{% if equipment %}
+                    {{ url_for('equipment_edit', equipment_id=equipment.equipment_id) }}
+                  {% else %}
+                    {{ url_for('equipment_create') }}
+                  {% endif %}"
+        >
+          <!-- Name -->
           <div class="mb-3">
-            <label class="form-label">Name</label>
-            <input class="form-control" type="text" name="name" value="{{ item.name if item else '' }}" required>
+            <label for="name" class="form-label">Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="name"
+              name="name"
+              placeholder="Camera 1"
+              value="{{ equipment.name if equipment else '' }}"
+              required
+            />
           </div>
+
+          <!-- Category -->
           <div class="mb-3">
-            <label class="form-label">Category</label>
-            <input class="form-control" type="text" name="category" value="{{ item.category if item else '' }}">
+            <label for="category" class="form-label">Category</label>
+            <input
+              type="text"
+              class="form-control"
+              id="category"
+              name="category"
+              placeholder="Camera / Lens / Tripod / Projector"
+              value="{{ equipment.category if equipment else '' }}"
+              required
+            />
           </div>
+
+          <!-- Serial Number -->
           <div class="mb-3">
-            <label class="form-label">Serial No</label>
-            <input class="form-control" type="text" name="serial_no" value="{{ item.serial_no if item else '' }}">
+            <label for="serial_number" class="form-label">Serial No</label>
+            <input
+              type="text"
+              class="form-control"
+              id="serial_number"
+              name="serial_number"
+              placeholder="SN-1001"
+              value="{{ equipment.serial_number if equipment else '' }}"
+              required
+            />
           </div>
+
+          <!-- Condition -->
           <div class="mb-3">
-            <label class="form-label">Condition</label>
-            <input class="form-control" type="text" name="condition" value="{{ item.condition if item else 'Good' }}">
+            <label for="condition" class="form-label">Condition</label>
+            <input
+              type="text"
+              class="form-control"
+              id="condition"
+              name="condition"
+              placeholder="Good / Needs Service"
+              value="{{ equipment.condition if equipment else 'Good' }}"
+            />
           </div>
+
+          <!-- Location -->
           <div class="mb-3">
-            <label class="form-label">Location</label>
-            <input class="form-control" type="text" name="location" value="{{ item.location if item else '' }}">
+            <label for="location" class="form-label">Location</label>
+            <input
+              type="text"
+              class="form-control"
+              id="location"
+              name="location"
+              placeholder="Ahlberg 200 / Lab B"
+              value="{{ equipment.location if equipment else '' }}"
+              required
+            />
           </div>
+
+          <!-- Daily Limit -->
           <div class="mb-3">
-            <label class="form-label">Daily Limit</label>
-            <input class="form-control" type="number" name="daily_limit" value="{{ item.daily_limit if item else 1 }}">
+            <label for="daily_limit" class="form-label">Daily Limit</label>
+            <input
+              type="number"
+              class="form-control"
+              id="daily_limit"
+              name="daily_limit"
+              min="1"
+              value="{{ equipment.daily_limit if equipment else 1 }}"
+            />
           </div>
-          <button class="btn btn-primary" type="submit">{{ action }}</button>
-          <a class="btn btn-light" href="{{ url_for('equipment_list') }}">Cancel</a>
+
+          <!-- Actions -->
+          <div class="d-flex justify-content-between mt-4">
+            <a
+              href="{{ url_for('equipment_list') }}"
+              class="btn btn-outline-secondary"
+            >
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+              {% if equipment %}Save Changes{% else %}Save Equipment{% endif %}
+            </button>
+          </div>
         </form>
       </div>
     </div>
