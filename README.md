@@ -173,6 +173,15 @@ Displays:
 
 ---
 
+## 🤝 Contributing
+1. Fork the repo  
+2. Create a feature branch  
+3. Commit changes  
+4. Push to your fork  
+5. Open a pull request  
+
+---
+
 ## 📄 License
 This project is for **educational purposes **.
 
