@@ -104,6 +104,7 @@
           <th>User</th>
           <th>Start</th>
           <th>End</th>
+          <th>Items</th>
           <th>Status</th>
           {% if is_staff %}<th class="text-end">Actions</th>{% endif %}
         </tr>
@@ -118,10 +119,48 @@
             {% endif %}
           "
         >
-          <td>{{ r.reservation_id }}</td>
-          <td>{{ r.user.full_name }}</td>
-          <td>{{ r.start_date }}</td>
-          <td>{{ r.end_date }}</td>
+          <td class="fw-semibold">#{{ r.reservation_id }}</td>
+
+          <td>
+            <div class="fw-semibold">{{ r.user.full_name }}</div>
+            <div class="text-muted small">{{ r.user.email }}</div>
+          </td>
+
+          <td>
+            <div class="fw-semibold">
+              {{ r.start_date.strftime("%Y-%m-%d") }}
+            </div>
+            <div class="text-muted small">
+              {{ r.start_date.strftime("%I:%M %p") }}
+            </div>
+          </td>
+
+          <td>
+            <div class="fw-semibold">
+              {{ r.end_date.strftime("%Y-%m-%d") }}
+            </div>
+            <div class="text-muted small">
+              {{ r.end_date.strftime("%I:%M %p") }}
+            </div>
+          </td>
+
+          <td style="max-width: 260px;">
+            {% if r.items %}
+              <div class="d-flex flex-wrap gap-1">
+                {% for item in r.items %}
+                  <span class="badge rounded-pill bg-light text-dark border">
+                    {{ item.equipment.name }}
+                    <span class="text-muted small">
+                      ({{ item.equipment.category }})
+                    </span>
+                  </span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-muted small">No items linked</span>
+            {% endif %}
+          </td>
+
           <td>
             <span class="badge
               {% if r.status == 'Approved' %}bg-success
@@ -188,11 +227,12 @@
         You don't have any reservations yet
       {% endif %}
     </h5>
-    <p class="text-muted mb-4">
+    <p class="text-muted mb-3">
       {% if is_staff %}
         Reservations will appear here once students submit requests.
       {% else %}
-        Use the button above to request equipment for a specific time window.
+        Use the <strong>+ New Reservation</strong> button above to request
+        one or more items for a specific time window.
       {% endif %}
     </p>
   </div>
