@@ -1,29 +1,76 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block content %}
 <div class="row justify-content-center">
   <div class="col-md-6">
     <div class="card shadow-sm">
       <div class="card-body">
         <h3 class="card-title mb-3 text-center">Create Account</h3>
-        <p class="text-muted text-center">Register for the WSU-ERP Portal</p>
+        <p class="text-muted text-center">
+          Register for the WSU-ERP Portal to reserve equipment and track service tickets.
+        </p>
+
         <form method="post">
+          <!-- Full Name -->
           <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input class="form-control" type="text" name="full_name" required />
+            <label for="full_name" class="form-label">Full Name</label>
+            <input
+              class="form-control"
+              type="text"
+              id="full_name"
+              name="full_name"
+              placeholder="e.g., Dheeraj Arjula"
+              autocomplete="name"
+              required
+            />
+            <div class="form-text">
+              Enter your full name as it should appear on reservations and service tickets.
+            </div>
           </div>
+
+          <!-- Email -->
           <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input class="form-control" type="email" name="email" required />
+            <label for="email" class="form-label">Email</label>
+            <input
+              class="form-control"
+              type="email"
+              id="email"
+              name="email"
+              placeholder="e.g., j893f466@shockers.wichita.edu"
+              autocomplete="email"
+              required
+            />
+            <div class="form-text">
+              Use a valid email address. WSU email (e.g.,
+              <code>j893f466@shockers.wichita.edu</code>) is recommended for students.
+            </div>
           </div>
+
+          <!-- Password -->
           <div class="mb-3">
-            <label class="form-label">Password</label>
+            <label for="password" class="form-label">Password</label>
             <input
               class="form-control"
               type="password"
+              id="password"
               name="password"
+              minlength="6"
+              autocomplete="new-password"
               required
             />
+            <div class="form-text">
+              Password must be at least 6 characters. Keep it secure and do not share it with others.
+            </div>
           </div>
-          <button class="btn btn-success w-100" type="submit">Register</button>
+
+          <div class="alert alert-info small">
+            New accounts are registered as <strong>Student</strong> users by default.
+            Tech staff and admin accounts are managed by system administrators.
+          </div>
+
+          <button class="btn btn-success w-100" type="submit">
+            Register
+          </button>
         </form>
       </div>
     </div>

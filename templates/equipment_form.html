@@ -1,9 +1,13 @@
 {% extends "base.html" %} {% block content %}
 <div class="d-flex justify-content-center">
   <div class="col-lg-8 col-xl-6">
-    <h1 class="h3 mb-4">
-      {% if equipment %}Edit Equipment{% else %}Equipment{% endif %}
+    <h1 class="h3 mb-2">
+      {% if equipment %}Edit Equipment{% else %}Add Equipment{% endif %}
     </h1>
+    <p class="text-muted mb-4">
+      Use this form to manage items in the lab inventory. All core fields are
+      required so reservations and loans can be tracked correctly.
+    </p>
 
     <div class="card shadow-sm">
       <div class="card-body">
@@ -23,10 +27,14 @@
               class="form-control"
               id="name"
               name="name"
-              placeholder="Camera 1"
+              placeholder="e.g., Canon DSLR 1"
               value="{{ equipment.name if equipment else '' }}"
               required
             />
+            <div class="form-text">
+              A clear, recognizable name for the item (students will see this on
+              the portal).
+            </div>
           </div>
 
           <!-- Category -->
@@ -41,20 +49,28 @@
               value="{{ equipment.category if equipment else '' }}"
               required
             />
+            <div class="form-text">
+              Used for grouping items in reports and filters (e.g.,
+              <code>Camera</code>, <code>Lens</code>).
+            </div>
           </div>
 
           <!-- Serial Number -->
           <div class="mb-3">
-            <label for="serial_number" class="form-label">Serial No</label>
+            <label for="serial_number" class="form-label">Serial Number</label>
             <input
               type="text"
               class="form-control"
               id="serial_number"
               name="serial_number"
-              placeholder="SN-1001"
+              placeholder="e.g., SN-1001 or CAM-WSU-001"
               value="{{ equipment.serial_number if equipment else '' }}"
               required
             />
+            <div class="form-text">
+              A unique identifier printed on the device. This is required to
+              track loans accurately.
+            </div>
           </div>
 
           <!-- Condition -->
@@ -65,9 +81,13 @@
               class="form-control"
               id="condition"
               name="condition"
-              placeholder="Good / Needs Service"
+              placeholder="Good / Needs Service / Damaged"
               value="{{ equipment.condition if equipment else 'Good' }}"
             />
+            <div class="form-text">
+              Optional note about current condition. Defaults to
+              <strong>Good</strong> if left empty.
+            </div>
           </div>
 
           <!-- Location -->
@@ -78,10 +98,14 @@
               class="form-control"
               id="location"
               name="location"
-              placeholder="Ahlberg 200 / Lab B"
+              placeholder="e.g., Ahlberg 200 / Lab B"
               value="{{ equipment.location if equipment else '' }}"
               required
             />
+            <div class="form-text">
+              Physical storage location so students and staff know where to pick
+              up / return the item.
+            </div>
           </div>
 
           <!-- Daily Limit -->
@@ -94,7 +118,17 @@
               name="daily_limit"
               min="1"
               value="{{ equipment.daily_limit if equipment else 1 }}"
+              required
             />
+            <div class="form-text">
+              Maximum days this item can be loaned out per reservation (e.g.,
+              1–3 days).
+            </div>
+          </div>
+
+          <div class="alert alert-info small">
+            Ensure all required fields are filled. Serial Number and Location
+            are especially important for tracking reservations and returns.
           </div>
 
           <!-- Actions -->
