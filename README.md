@@ -15,16 +15,16 @@ Provides **role-based access** for Students and Tech Staff with a modern UI + em
 > *(Replace the image paths with your actual uploaded screenshots later)*
 
 ### 🔹 Student Dashboard  
-![Student Dashboard](screenshots/student_dashboard.png)
+![Student Dashboard](student_dashboard.png)
 
 ### 🔹 Tech Staff Dashboard  
-![Tech Staff Dashboard](screenshots/staff_dashboard.png)
+![Tech Staff Dashboard](staff_dashboard.png)
 
 ### 🔹 Reservation Form  
-![Reservation Form](screenshots/reservation_form.png)
+![Reservation Form](reservation_form.png)
 
 ### 🔹 Service Tickets  
-![Tickets](screenshots/tickets_list.png)
+![Tickets](tickets_list.png)
 
 ---
 
