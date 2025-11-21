@@ -145,16 +145,6 @@ Visit: **http://127.0.0.1:5000**
 
 ---
 
-## 🎥 Demo Workflow (Optional GIF)
-
-> *(Upload GIFs later in a `/screenshots` or `/demo` folder and update paths)*
-
-- `demo_reservation.gif`
-- `demo_loan.gif`
-- `demo_ticket.gif`
-
----
-
 ## 📈 Analytics Dashboard
 
 Powered by **React + Chart.js**  
