@@ -12,6 +12,9 @@ Provides **role-based access** for Students and Tech Staff with a modern UI + em
 
 ## 🖼️ Screenshots
 
+### 🔹 Database Architecture  
+![Database Design](database_design.png)
+
 ### 🔹 Student Dashboard  
 ![Student Dashboard](student_dashboard.png)
 
