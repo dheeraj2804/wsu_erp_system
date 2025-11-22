@@ -1,20 +1,31 @@
-{% extends "base.html" %} {% block content %} {# Precompute counts for cards +
-chart #} {% set total_count = tickets|length %} {% set open_count =
-tickets|selectattr('status', 'equalto', 'Open')|list|length %} {% set
-in_progress_count = tickets|selectattr('status', 'equalto', 'In
-Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
-'equalto', 'Closed')|list|length %}
+<!-- templates/tickets_list.html -->
+{% extends "base.html" %}
+{% block content %}
+
+{# -----------------------
+   Counts for header cards
+   ----------------------- #}
+{% set total_count = tickets|length %}
+{% set open_count = tickets|selectattr('status', 'equalto', 'Open')|list|length %}
+{% set in_progress_count = tickets|selectattr('status', 'equalto', 'In Progress')|list|length %}
+{% set closed_count = tickets|selectattr('status', 'equalto', 'Closed')|list|length %}
 
 <!-- Page Header -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start mb-4">
   <div>
-    <h1 class="h3 fw-bold mb-1">Service Tickets</h1>
+    <h1 class="h3 fw-bold mb-1">
+      {% if is_staff %}All Service Tickets{% else %}My Service Tickets{% endif %}
+    </h1>
     <p class="text-muted mb-0">
-      Track equipment issues, their severity, and maintenance progress.
+      {% if is_staff %}
+        Review issues, assign technicians, and track maintenance progress.
+      {% else %}
+        Report equipment issues and follow updates from Tech Staff.
+      {% endif %}
     </p>
   </div>
 
-  <a href="{{ url_for('tickets_create') }}" class="btn btn-primary px-4 py-2">
+  <a href="{{ url_for('tickets_create') }}" class="btn btn-primary px-4">
     + New Ticket
   </a>
 </div>
@@ -24,7 +35,7 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
   <div class="col-md-3">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body">
-        <h6 class="text-uppercase text-muted small mb-1">Total</h6>
+        <div class="text-muted small text-uppercase">Total</div>
         <div class="h4 fw-bold mb-0">{{ total_count }}</div>
       </div>
     </div>
@@ -33,7 +44,7 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
   <div class="col-md-3">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body">
-        <h6 class="text-uppercase text-muted small mb-1">Open</h6>
+        <div class="text-muted small text-uppercase">Open</div>
         <div class="h4 fw-bold text-warning mb-0">{{ open_count }}</div>
       </div>
     </div>
@@ -42,7 +53,7 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
   <div class="col-md-3">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body">
-        <h6 class="text-uppercase text-muted small mb-1">In Progress</h6>
+        <div class="text-muted small text-uppercase">In Progress</div>
         <div class="h4 fw-bold text-info mb-0">{{ in_progress_count }}</div>
       </div>
     </div>
@@ -51,7 +62,7 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
   <div class="col-md-3">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body">
-        <h6 class="text-uppercase text-muted small mb-1">Closed</h6>
+        <div class="text-muted small text-uppercase">Closed</div>
         <div class="h4 fw-bold text-success mb-0">{{ closed_count }}</div>
       </div>
     </div>
@@ -59,15 +70,11 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
 </div>
 
 {% if is_staff and total_count > 0 %}
-<!-- Tickets by Status Chart (staff only) -->
+<!-- Staff-only Chart -->
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        <h6 class="text-uppercase text-muted small mb-1">Overview</h6>
-        <h5 class="mb-0">Tickets by Status</h5>
-      </div>
-    </div>
+    <h6 class="text-muted text-uppercase small mb-1">Overview</h6>
+    <h5 class="mb-3">Tickets by Status</h5>
     <div style="height: 260px">
       <canvas id="ticketsStatusChart"></canvas>
     </div>
@@ -78,14 +85,14 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
 <!-- Filters + Search -->
 <div class="card shadow-sm border-0 mb-3">
   <div class="card-body d-flex flex-wrap gap-2 align-items-center">
-    <div class="me-2 fw-semibold text-muted small text-uppercase">Filters</div>
+    <div class="fw-semibold text-muted small text-uppercase me-2">Filters</div>
 
     <div class="flex-grow-1" style="min-width: 220px">
       <input
         id="ticketSearch"
         type="text"
         class="form-control form-control-sm"
-        placeholder="Search by equipment or ticket ID..."
+        placeholder="Search by equipment name or ticket ID..."
       />
     </div>
 
@@ -122,15 +129,17 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
             <th>Severity</th>
             <th>Status</th>
             {% if is_staff %}
-            <th>Opened By</th>
-            <th>Assigned To</th>
+              <th>Opened By</th>
+              <th>Assigned To</th>
             {% endif %}
-            <th>Opened At</th>
-            <th style="width: 130px">Actions</th>
+            <th>Opened</th>
+            <th style="width: 140px" class="text-center">Action</th>
           </tr>
         </thead>
+
         <tbody id="ticketsTableBody">
-          {% if tickets %} {% for t in tickets %}
+        {% if tickets %}
+          {% for t in tickets %}
           <tr
             data-id="{{ t.ticket_id }}"
             data-equipment="{{ t.equipment.name | lower }}"
@@ -138,145 +147,129 @@ Progress')|list|length %} {% set closed_count = tickets|selectattr('status',
             data-severity="{{ t.severity }}"
           >
             <td class="fw-semibold">#{{ t.ticket_id }}</td>
-
             <td>{{ t.equipment.name }}</td>
 
             <td>
-              <span
-                class="badge {% if t.severity == 'Critical' %} bg-danger {% elif t.severity == 'High' %} bg-danger-subtle text-danger {% elif t.severity == 'Medium' %} bg-warning text-dark {% elif t.severity == 'Low' %} bg-secondary {% else %} bg-light text-muted {% endif %}"
-              >
+              <span class="badge
+                {% if t.severity == 'Critical' %}bg-danger
+                {% elif t.severity == 'High' %}bg-danger-subtle text-danger
+                {% elif t.severity == 'Medium' %}bg-warning text-dark
+                {% elif t.severity == 'Low' %}bg-secondary
+                {% else %}bg-light text-muted{% endif %}
+              ">
                 {{ t.severity }}
               </span>
             </td>
 
             <td>
-              {% if t.status == 'Open' %}
-              <span class="badge bg-warning text-dark">Open</span>
-              {% elif t.status == 'In Progress' %}
-              <span class="badge bg-info text-dark">In Progress</span>
-              {% else %}
-              <span class="badge bg-success">Closed</span>
-              {% endif %}
+              <span class="badge
+                {% if t.status == 'Open' %}bg-warning text-dark
+                {% elif t.status == 'In Progress' %}bg-info text-dark
+                {% elif t.status == 'Closed' %}bg-success
+                {% else %}bg-secondary{% endif %}
+              ">
+                {{ t.status }}
+              </span>
             </td>
 
             {% if is_staff %}
             <td>{{ t.opened_by_user.full_name }}</td>
             <td>
-              {% if t.assigned_to_user %} {{ t.assigned_to_user.full_name }} {%
-              else %}
-              <span class="text-muted">Unassigned</span>
+              {% if t.assigned_to_user %}
+                {{ t.assigned_to_user.full_name }}
+              {% else %}
+                <span class="text-muted">Unassigned</span>
               {% endif %}
             </td>
             {% endif %}
 
             <td>{{ t.opened_at.strftime("%Y-%m-%d %H:%M") }}</td>
 
-            <td>
-              <a
-                href="{{ url_for('ticket_detail', ticket_id=t.ticket_id) }}"
-                class="btn btn-sm btn-outline-primary"
-              >
-                {% if is_staff %}View / Manage{% else %}View{% endif %}
+            <td class="text-center">
+              <a href="{{ url_for('ticket_detail', ticket_id=t.ticket_id) }}"
+                 class="btn btn-sm btn-outline-primary">
+                 {% if is_staff %}View / Manage{% else %}View{% endif %}
               </a>
             </td>
           </tr>
-          {% endfor %} {% else %}
+          {% endfor %}
+        {% else %}
           <tr>
-            <td
-              colspan="{% if is_staff %}8{% else %}6{% endif %}"
-              class="text-center py-4 text-muted"
-            >
-              No tickets found. Click <strong>New Ticket</strong> to report an
-              issue.
+            <td colspan="{% if is_staff %}8{% else %}6{% endif %}" class="text-center py-5 text-muted">
+              {% if is_staff %}
+                No tickets found yet. Students will appear here once they report issues.
+              {% else %}
+                You don’t have any tickets yet. Click <strong>New Ticket</strong> to report an issue.
+              {% endif %}
             </td>
           </tr>
-          {% endif %}
+        {% endif %}
         </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- Page Scripts -->
+<!-- Search + filter JS -->
 <script>
-  // --- Simple search + filter on the table ---
-  (function () {
-    const searchInput = document.getElementById("ticketSearch");
-    const statusFilter = document.getElementById("statusFilter");
-    const severityFilter = document.getElementById("severityFilter");
-    const rows = Array.from(document.querySelectorAll("#ticketsTableBody tr"));
+(function () {
+  const searchInput = document.getElementById("ticketSearch");
+  const statusFilter = document.getElementById("statusFilter");
+  const severityFilter = document.getElementById("severityFilter");
+  const rows = Array.from(document.querySelectorAll("#ticketsTableBody tr"));
 
-    function applyFilters() {
-      const q = (searchInput.value || "").toLowerCase().trim();
-      const statusVal = statusFilter.value;
-      const severityVal = severityFilter.value;
+  function applyFilters() {
+    const q = (searchInput.value || "").toLowerCase().trim();
+    const statusVal = statusFilter.value;
+    const severityVal = severityFilter.value;
 
-      rows.forEach((row) => {
-        const equipment = (
-          row.getAttribute("data-equipment") || ""
-        ).toLowerCase();
-        const id = (row.getAttribute("data-id") || "").toLowerCase();
-        const status = row.getAttribute("data-status") || "";
-        const severity = row.getAttribute("data-severity") || "";
+    rows.forEach((row) => {
+      const equipment = (row.getAttribute("data-equipment") || "");
+      const id = (row.getAttribute("data-id") || "");
+      const status = row.getAttribute("data-status") || "";
+      const severity = row.getAttribute("data-severity") || "";
 
-        let visible = true;
+      let visible = true;
+      if (q && !(equipment.includes(q) || id.includes(q))) visible = false;
+      if (statusVal && status !== statusVal) visible = false;
+      if (severityVal && severity !== severityVal) visible = false;
 
-        if (q && !(equipment.includes(q) || id.includes(q))) {
-          visible = false;
-        }
-        if (statusVal && status !== statusVal) {
-          visible = false;
-        }
-        if (severityVal && severity !== severityVal) {
-          visible = false;
-        }
+      row.style.display = visible ? "" : "none";
+    });
+  }
 
-        row.style.display = visible ? "" : "none";
-      });
-    }
-
-    if (searchInput && statusFilter && severityFilter) {
-      searchInput.addEventListener("input", applyFilters);
-      statusFilter.addEventListener("change", applyFilters);
-      severityFilter.addEventListener("change", applyFilters);
-    }
-  })();
+  if (searchInput) searchInput.addEventListener("input", applyFilters);
+  if (statusFilter) statusFilter.addEventListener("change", applyFilters);
+  if (severityFilter) severityFilter.addEventListener("change", applyFilters);
+})();
 </script>
 
 {% if is_staff and total_count > 0 %}
 <script>
-  // --- Tickets by Status Chart (Chart.js, staff only) ---
-  (function () {
-    const canvas = document.getElementById('ticketsStatusChart');
-    if (!canvas || !window.Chart) return;
+(function () {
+  const canvas = document.getElementById("ticketsStatusChart");
+  if (!canvas || !window.Chart) return;
 
-    const ctx = canvas.getContext('2d');
-    const labels = ['Open', 'In Progress', 'Closed'];
-    const dataValues = [{{ open_count }}, {{ in_progress_count }}, {{ closed_count }}];
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Tickets',
-          data: dataValues,
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              precision: 0
-            }
-          }
-        }
-      }
-    });
-  })();
+  const ctx = canvas.getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Open", "In Progress", "Closed"],
+      datasets: [{
+        label: "Tickets",
+        data: [{{ open_count }}, {{ in_progress_count }}, {{ closed_count }}],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+})();
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+
+{% endblock %}

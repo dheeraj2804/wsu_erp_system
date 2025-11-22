@@ -598,7 +598,6 @@ def loans_return(loan_id):
 @login_required
 def tickets_list():
     if not current_user.is_staff:
-        # students see only their own tickets
         tickets = (
             ServiceTicket.query
             .filter_by(opened_by=current_user.user_id)
@@ -612,18 +611,9 @@ def tickets_list():
             .all()
         )
 
-    tickets_summary = [
-        {
-            "ticket_id": t.ticket_id,
-            "status": t.status or "Open",
-        }
-        for t in tickets
-    ]
-
     return render_template(
         "tickets_list.html",
         tickets=tickets,
-        tickets_summary=tickets_summary,
         is_staff=current_user.is_staff,
     )
 
@@ -633,10 +623,21 @@ def tickets_list():
 def tickets_create():
     equipment = Equipment.query.order_by(Equipment.name).all()
 
+    # staff list only for staff; students don't need it
+    users = []
+    if current_user.is_staff:
+        users = User.query.order_by(User.full_name).all()
+
     if request.method == "POST":
         equipment_id = int(request.form.get("equipment_id"))
         severity = request.form.get("severity")
-        description = request.form.get("description")
+        description = request.form.get("description") or ""
+
+        assigned_to = None
+        if current_user.is_staff:
+            assigned_raw = request.form.get("assigned_to") or ""
+            if assigned_raw.isdigit():
+                assigned_to = int(assigned_raw)
 
         ticket = ServiceTicket(
             equipment_id=equipment_id,
@@ -644,13 +645,19 @@ def tickets_create():
             status="Open",
             description=description,
             opened_by=current_user.user_id,
+            assigned_to=assigned_to,
         )
         db.session.add(ticket)
         db.session.commit()
         flash("Service ticket created.", "success")
         return redirect(url_for("tickets_list"))
 
-    return render_template("ticket_form.html", equipment=equipment)
+    return render_template(
+        "ticket_form.html",
+        equipment=equipment,
+        users=users,
+        is_staff=current_user.is_staff,
+    )
 
 
 @app.route("/tickets/<int:ticket_id>", methods=["GET", "POST"])
@@ -658,13 +665,13 @@ def tickets_create():
 def ticket_detail(ticket_id):
     ticket = ServiceTicket.query.get_or_404(ticket_id)
 
+    # students can only see their own tickets
     if (not current_user.is_staff) and ticket.opened_by != current_user.user_id:
         flash("You are not allowed to view this ticket.", "danger")
         return redirect(url_for("tickets_list"))
 
     if request.method == "POST":
-        # add update note
-        note = request.form.get("note")
+        note = (request.form.get("note") or "").strip()
         if note:
             update = TicketUpdate(
                 ticket_id=ticket.ticket_id,
@@ -677,17 +684,22 @@ def ticket_detail(ticket_id):
             return redirect(url_for("ticket_detail", ticket_id=ticket.ticket_id))
 
     updates = (
-        TicketUpdate.query.filter_by(ticket_id=ticket.ticket_id)
+        TicketUpdate.query
+        .filter_by(ticket_id=ticket.ticket_id)
         .order_by(TicketUpdate.added_at.desc())
         .all()
     )
-    users = User.query.filter(User.role_id.isnot(None)).order_by(User.full_name).all()
+
+    users = []
+    if current_user.is_staff:
+        users = User.query.order_by(User.full_name).all()
 
     return render_template(
         "ticket_detail.html",
         ticket=ticket,
         updates=updates,
         users=users,
+        is_staff=current_user.is_staff,
     )
 
 
@@ -700,13 +712,13 @@ def ticket_edit(ticket_id):
 
     ticket = ServiceTicket.query.get_or_404(ticket_id)
 
-    status = request.form.get("status")
+    status = request.form.get("status") or ticket.status
     assigned_to = request.form.get("assigned_to") or None
 
     if status in ("Open", "In Progress", "Closed"):
         ticket.status = status
 
-    if assigned_to:
+    if assigned_to and str(assigned_to).isdigit():
         ticket.assigned_to = int(assigned_to)
     else:
         ticket.assigned_to = None

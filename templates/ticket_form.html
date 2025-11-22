@@ -1,13 +1,19 @@
+<!-- templates/ticket_form.html -->
 {% extends "base.html" %}
 {% block content %}
+
 <div class="row justify-content-center">
-  <div class="col-md-7">
+  <div class="col-md-8 col-lg-7">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h3 class="card-title mb-3">Create Service Ticket</h3>
+        <h3 class="card-title mb-1">Create Service Ticket</h3>
+        <p class="text-muted mb-3">
+          Report an issue with equipment so Tech Staff can resolve it.
+        </p>
+
         <form method="post">
           <div class="mb-3">
-            <label class="form-label">Equipment</label>
+            <label class="form-label">Equipment <span class="text-danger">*</span></label>
             <select class="form-select" name="equipment_id" required>
               {% for e in equipment %}
               <option value="{{ e.equipment_id }}">
@@ -18,17 +24,21 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Severity</label>
-            <select class="form-select" name="severity">
+            <label class="form-label">Severity <span class="text-danger">*</span></label>
+            <select class="form-select" name="severity" required>
               <option value="Low">Low</option>
               <option value="Medium" selected>Medium</option>
               <option value="High">High</option>
               <option value="Critical">Critical</option>
             </select>
+            <div class="form-text">
+              Low = minor issue, Critical = equipment unusable / urgent safety risk.
+            </div>
           </div>
 
+          {% if is_staff %}
           <div class="mb-3">
-            <label class="form-label">Assigned To (optional)</label>
+            <label class="form-label">Assign Technician (optional)</label>
             <select class="form-select" name="assigned_to">
               <option value="">-- Unassigned --</option>
               {% for u in users %}
@@ -36,17 +46,27 @@
               {% endfor %}
             </select>
           </div>
+          {% endif %}
 
           <div class="mb-3">
             <label class="form-label">Description</label>
-            <textarea class="form-control" name="description" rows="4"></textarea>
+            <textarea
+              class="form-control"
+              name="description"
+              rows="4"
+              placeholder="Explain the problem: what happened, when, and any visible issue..."
+            ></textarea>
           </div>
 
-          <button class="btn btn-primary" type="submit">Create Ticket</button>
-          <a class="btn btn-light" href="{{ url_for('tickets_list') }}">Cancel</a>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Create Ticket</button>
+            <a class="btn btn-light" href="{{ url_for('tickets_list') }}">Cancel</a>
+          </div>
         </form>
+
       </div>
     </div>
   </div>
 </div>
+
 {% endblock %}
