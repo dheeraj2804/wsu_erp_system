@@ -15,17 +15,21 @@
     {% endif %}
   </div>
 
-  {% if not is_staff %}
-  <a href="{{ url_for('reservations_create') }}" class="btn btn-primary btn-sm">
-    + New Reservation
-  </a>
-  {% endif %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('reservations_calendar') }}" class="btn btn-outline-secondary btn-sm">
+      Calendar View
+    </a>
+
+    {% if not is_staff %}
+    <a href="{{ url_for('reservations_create') }}" class="btn btn-primary btn-sm">
+      + New Reservation
+    </a>
+    {% endif %}
+  </div>
 </div>
 
-<!-- React summary root -->
 <div id="reservations-summary-root" class="mb-4"></div>
 
-<!-- JSON-safe summary from backend -->
 <script>
   window.RESERVATIONS_DATA = {{ reservations_summary|tojson }};
 </script>
@@ -36,61 +40,42 @@
 
   function ReservationsSummary() {
     const data = window.RESERVATIONS_DATA || [];
-
     const stats = useMemo(() => {
-      const result = { total: 0, Pending: 0, Approved: 0, Denied: 0 };
-      result.total = data.length;
+      const res = { total: 0, Pending: 0, Approved: 0, Denied: 0 };
+      res.total = data.length;
       data.forEach(r => {
-        if (r.status && result.hasOwnProperty(r.status)) {
-          result[r.status] += 1;
-        }
+        if (res.hasOwnProperty(r.status)) res[r.status]++;
       });
-      return result;
+      return res;
     }, [data]);
 
     return (
       <div className="row g-3">
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-              <div className="text-muted small text-uppercase">Total</div>
-              <div className="fs-4 fw-semibold">{stats.total}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-              <div className="text-muted small text-uppercase">Pending</div>
-              <div className="fs-4 fw-semibold text-warning">{stats.Pending}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-              <div className="text-muted small text-uppercase">Approved</div>
-              <div className="fs-4 fw-semibold text-success">{stats.Approved}</div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0 h-100">
-            <div className="card-body">
-              <div className="text-muted small text-uppercase">Denied</div>
-              <div className="fs-4 fw-semibold text-danger">{stats.Denied}</div>
-            </div>
-          </div>
-        </div>
+        <div className="col-md-3"><div className="card shadow-sm h-100"><div className="card-body">
+          <div className="text-muted small text-uppercase">Total</div>
+          <div className="fs-4 fw-semibold">{stats.total}</div>
+        </div></div></div>
+
+        <div className="col-md-3"><div className="card shadow-sm h-100"><div className="card-body">
+          <div className="text-muted small text-uppercase">Pending</div>
+          <div className="fs-4 fw-semibold text-warning">{stats.Pending}</div>
+        </div></div></div>
+
+        <div className="col-md-3"><div className="card shadow-sm h-100"><div className="card-body">
+          <div className="text-muted small text-uppercase">Approved</div>
+          <div className="fs-4 fw-semibold text-success">{stats.Approved}</div>
+        </div></div></div>
+
+        <div className="col-md-3"><div className="card shadow-sm h-100"><div className="card-body">
+          <div className="text-muted small text-uppercase">Denied</div>
+          <div className="fs-4 fw-semibold text-danger">{stats.Denied}</div>
+        </div></div></div>
       </div>
     );
   }
 
-  const resRootEl = document.getElementById("reservations-summary-root");
-  if (resRootEl) {
-    const resRoot = ReactDOM.createRoot(resRootEl);
-    resRoot.render(<ReservationsSummary />);
-  }
+  const root = document.getElementById("reservations-summary-root");
+  if (root) ReactDOM.createRoot(root).render(<ReservationsSummary />);
 </script>
 {% endraw %}
 
@@ -104,63 +89,22 @@
           <th>User</th>
           <th>Start</th>
           <th>End</th>
-          <th>Items</th>
           <th>Status</th>
           {% if is_staff %}<th class="text-end">Actions</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for r in reservations %}
-        <tr
-          class="
-            {% if r.status == 'Approved' %}table-success-subtle
-            {% elif r.status == 'Pending' %}table-warning-subtle
-            {% elif r.status == 'Denied' %}table-danger-subtle
-            {% endif %}
-          "
-        >
-          <td class="fw-semibold">#{{ r.reservation_id }}</td>
-
-          <td>
-            <div class="fw-semibold">{{ r.user.full_name }}</div>
-            <div class="text-muted small">{{ r.user.email }}</div>
-          </td>
-
-          <td>
-            <div class="fw-semibold">
-              {{ r.start_date.strftime("%Y-%m-%d") }}
-            </div>
-            <div class="text-muted small">
-              {{ r.start_date.strftime("%I:%M %p") }}
-            </div>
-          </td>
-
-          <td>
-            <div class="fw-semibold">
-              {{ r.end_date.strftime("%Y-%m-%d") }}
-            </div>
-            <div class="text-muted small">
-              {{ r.end_date.strftime("%I:%M %p") }}
-            </div>
-          </td>
-
-          <td style="max-width: 260px;">
-            {% if r.items %}
-              <div class="d-flex flex-wrap gap-1">
-                {% for item in r.items %}
-                  <span class="badge rounded-pill bg-light text-dark border">
-                    {{ item.equipment.name }}
-                    <span class="text-muted small">
-                      ({{ item.equipment.category }})
-                    </span>
-                  </span>
-                {% endfor %}
-              </div>
-            {% else %}
-              <span class="text-muted small">No items linked</span>
-            {% endif %}
-          </td>
-
+        <tr class="
+          {% if r.status == 'Approved' %}table-success-subtle
+          {% elif r.status == 'Pending' %}table-warning-subtle
+          {% elif r.status == 'Denied' %}table-danger-subtle
+          {% endif %}
+        ">
+          <td>{{ r.reservation_id }}</td>
+          <td>{{ r.user.full_name }}</td>
+          <td>{{ r.start_date }}</td>
+          <td>{{ r.end_date }}</td>
           <td>
             <span class="badge
               {% if r.status == 'Approved' %}bg-success
@@ -217,6 +161,7 @@
     </table>
   </div>
 </div>
+
 {% else %}
 <div class="card shadow-sm mt-3">
   <div class="card-body text-center py-5">
@@ -227,12 +172,11 @@
         You don't have any reservations yet
       {% endif %}
     </h5>
-    <p class="text-muted mb-3">
+    <p class="text-muted mb-4">
       {% if is_staff %}
         Reservations will appear here once students submit requests.
       {% else %}
-        Use the <strong>+ New Reservation</strong> button above to request
-        one or more items for a specific time window.
+        Use the button above to request equipment for a specific time window.
       {% endif %}
     </p>
   </div>
