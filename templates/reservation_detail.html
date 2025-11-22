@@ -19,10 +19,10 @@
 </div>
 
 <div class="row g-3">
-  <!-- Left column: Reservation + status/actions -->
+  <!-- Left column -->
   <div class="col-md-6">
 
-    <!-- Overview card -->
+    <!-- Summary card -->
     <div class="card shadow-sm mb-3">
       <div class="card-body">
         <h5 class="card-title mb-3">Reservation Overview</h5>
@@ -45,13 +45,12 @@
 
           <dt class="col-sm-4">Status</dt>
           <dd class="col-sm-8">
-            <span
-              class="badge
-                {% if reservation.status == 'Approved' %}bg-success
-                {% elif reservation.status == 'Pending' %}bg-warning text-dark
-                {% elif reservation.status == 'Denied' %}bg-danger
-                {% else %}bg-secondary{% endif %}
-              ">
+            <span class="badge
+              {% if reservation.status == 'Approved' %}bg-success
+              {% elif reservation.status == 'Pending' %}bg-warning text-dark
+              {% elif reservation.status == 'Denied' %}bg-danger
+              {% else %}bg-secondary{% endif %}
+            ">
               {{ reservation.status }}
             </span>
           </dd>
@@ -60,7 +59,7 @@
     </div>
 
     {% if is_staff %}
-    <!-- Staff-only status & loan actions -->
+    <!-- Staff Action Panel -->
     <div class="card shadow-sm">
       <div class="card-body">
         <h6 class="card-title mb-2">Review & Actions</h6>
@@ -68,86 +67,74 @@
           Update the reservation status or convert an approved reservation into a loan.
         </p>
 
-        <div class="d-flex flex-wrap gap-2 mb-2">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+
           <!-- Approve -->
-          <form
-            action="{{ url_for('reservation_set_status', reservation_id=reservation.reservation_id) }}"
-            method="post"
-            class="d-inline"
-          >
+          <form method="post"
+                action="{{ url_for('reservation_set_status', reservation_id=reservation.reservation_id) }}"
+                class="d-inline">
             <input type="hidden" name="status" value="Approved" />
-            <button
-              type="submit"
-              class="btn btn-success btn-sm"
-              {% if reservation.status == 'Approved' %}disabled{% endif %}
-            >
+            <button class="btn btn-success btn-sm"
+                    {% if reservation.status == 'Approved' %}disabled{% endif %}>
               Approve
             </button>
           </form>
 
           <!-- Deny -->
-          <form
-            action="{{ url_for('reservation_set_status', reservation_id=reservation.reservation_id) }}"
-            method="post"
-            class="d-inline"
-          >
+          <form method="post"
+                action="{{ url_for('reservation_set_status', reservation_id=reservation.reservation_id) }}"
+                class="d-inline">
             <input type="hidden" name="status" value="Denied" />
-            <button
-              type="submit"
-              class="btn btn-outline-danger btn-sm"
-              {% if reservation.status == 'Denied' %}disabled{% endif %}
-            >
+            <button class="btn btn-outline-danger btn-sm"
+                    {% if reservation.status == 'Denied' %}disabled{% endif %}>
               Deny
             </button>
           </form>
 
-          <!-- Create Loan -->
+          <!-- Loan generation -->
           {% if reservation.status == 'Approved' and not reservation.loan %}
-          <a
-            href="{{ url_for('loans_create', reservation_id=reservation.reservation_id) }}"
-            class="btn btn-primary btn-sm"
-          >
-            Create Loan
-          </a>
+            <a href="{{ url_for('loans_create', reservation_id=reservation.reservation_id) }}"
+               class="btn btn-primary btn-sm">
+              Create Loan
+            </a>
           {% elif reservation.loan %}
-          <span class="badge bg-info text-dark align-self-center">
-            Loan created: #{{ reservation.loan.loan_id }}
-          </span>
+            <span class="badge bg-info text-dark align-self-center">
+              Loan #{{ reservation.loan.loan_id }} created
+            </span>
           {% endif %}
         </div>
 
-        <!-- Simple "timeline" style hint -->
-        <div class="border-top pt-2 mt-2">
+        <div class="border-top pt-2">
           <small class="text-muted">
             Typical workflow:
             <span class="badge bg-light text-muted border mx-1">Pending</span>
-            &rarr;
+            →
             <span class="badge bg-light text-muted border mx-1">Approved / Denied</span>
+
             {% if reservation.loan %}
-              &rarr; <span class="badge bg-light text-muted border mx-1">Loan #{{ reservation.loan.loan_id }}</span>
+              → <span class="badge bg-light text-muted border mx-1">Loan #{{ reservation.loan.loan_id }}</span>
             {% else %}
-              &rarr; <span class="badge bg-light text-muted border mx-1">Loan (optional)</span>
+              → <span class="badge bg-light text-muted border mx-1">Loan</span>
             {% endif %}
           </small>
         </div>
       </div>
     </div>
+
     {% else %}
-    <!-- Student hint card -->
+    <!-- Student Info -->
     <div class="card shadow-sm">
       <div class="card-body">
         <h6 class="card-title mb-2">What happens next?</h6>
         <p class="text-muted small mb-0">
-          Once staff review your request, the status will change to
-          <strong>Approved</strong> or <strong>Denied</strong>.
-          If approved, staff will create a loan when you pick up the equipment.
+          Once staff review your request, the status will update. If approved, a loan will be created when you pick up the equipment.
         </p>
       </div>
     </div>
     {% endif %}
   </div>
 
-  <!-- Right column: Equipment list -->
+  <!-- Right column -->
   <div class="col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-body d-flex flex-column">
@@ -156,8 +143,8 @@
         {% if reservation.items %}
           <ul class="list-group mb-3">
             {% for item in reservation.items %}
-            <li class="list-group-item d-flex justify-content-between align-items-start">
-              <div class="ms-0">
+            <li class="list-group-item d-flex justify-content-between">
+              <div>
                 <div class="fw-semibold">
                   {{ item.equipment.name }}
                   <span class="badge bg-secondary ms-2">
@@ -165,26 +152,23 @@
                   </span>
                 </div>
                 <div class="small text-muted">
-                  {{ item.equipment.category }} &middot;
-                  Location: {{ item.equipment.location }}
+                  {{ item.equipment.category }} · {{ item.equipment.location }}
                 </div>
               </div>
             </li>
             {% endfor %}
           </ul>
         {% else %}
-          <p class="text-muted mb-0">
-            No equipment items are attached to this reservation.
-          </p>
+          <p class="text-muted">No equipment attached to this reservation.</p>
         {% endif %}
 
         <div class="mt-auto pt-2 border-top">
           <small class="text-muted">
-            Need to adjust items or time range?
+            Need changes?  
             {% if is_staff %}
-              Ask the student to submit a new reservation with the correct details.
+              Ask the student to submit a corrected reservation.
             {% else %}
-              Submit a new reservation request with updated equipment and times.
+              Submit a new reservation with the updated details.
             {% endif %}
           </small>
         </div>
