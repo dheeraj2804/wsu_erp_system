@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, timedelta
+
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 from flask import (
     Flask,
@@ -22,13 +24,18 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 # ------------------------------------------------------------------------------
-# App + DB setup
+# App + DB setup  (FIXED: absolute DB path so seed.py + app.py use same file)
 # ------------------------------------------------------------------------------
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "dev-secret-key-change-this"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///wsu_erp.db"
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "wsu_erp.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -68,6 +75,7 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
+        # FIXED: compare against stored hash
         return check_password_hash(self.password_hash, password)
 
     @property
@@ -184,6 +192,34 @@ def inject_role_flags():
 
 
 # ------------------------------------------------------------------------------
+# Helper: availability check
+# ------------------------------------------------------------------------------
+
+def equipment_is_available(equipment_id, start_dt, end_dt):
+    """
+    Returns True if equipment has NOT exceeded daily_limit during the requested window.
+    Overlap rule:
+        existing.start < requested.end AND existing.end > requested.start
+    Only Pending/Approved reservations block availability.
+    """
+    eq = Equipment.query.get(equipment_id)
+    if not eq:
+        return False
+
+    overlap_count = (
+        db.session.query(func.count(ReservationItem.res_item_id))
+        .join(Reservation, Reservation.reservation_id == ReservationItem.reservation_id)
+        .filter(ReservationItem.equipment_id == equipment_id)
+        .filter(Reservation.status.in_(["Pending", "Approved"]))
+        .filter(Reservation.start_date < end_dt)
+        .filter(Reservation.end_date > start_dt)
+        .scalar()
+    )
+
+    return overlap_count < (eq.daily_limit or 1)
+
+
+# ------------------------------------------------------------------------------
 # Auth routes
 # ------------------------------------------------------------------------------
 
@@ -229,12 +265,15 @@ def login():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+
         user = User.query.filter_by(email=email).first()
         if user and user.check_password(password):
             login_user(user)
             return redirect(url_for("dashboard"))
+
         flash("Invalid email or password.", "danger")
         return redirect(url_for("login"))
+
     return render_template("login.html")
 
 
@@ -275,22 +314,27 @@ def equipment_create():
         return redirect(url_for("equipment_list"))
 
     if request.method == "POST":
-        # Read and trim fields safely
         name = (request.form.get("name") or "").strip()
         category = (request.form.get("category") or "").strip()
-        # Accept both serial_number and serial_no just in case
-        serial_number = (request.form.get("serial_number") or request.form.get("serial_no") or "").strip()
+        serial_number = (
+            request.form.get("serial_number")
+            or request.form.get("serial_no")
+            or ""
+        ).strip()
         condition = (request.form.get("condition") or "Good").strip() or "Good"
         location = (request.form.get("location") or "").strip()
+
         try:
             daily_limit_raw = request.form.get("daily_limit") or "1"
             daily_limit = int(daily_limit_raw)
         except ValueError:
             daily_limit = 1
 
-        # Simple validation for required fields
         if not name or not category or not serial_number or not location:
-            flash("Name, category, serial number, and location are required.", "danger")
+            flash(
+                "Name, category, serial number, and location are required.",
+                "danger",
+            )
             return redirect(url_for("equipment_create"))
 
         eq = Equipment(
@@ -301,14 +345,13 @@ def equipment_create():
             location=location,
             daily_limit=daily_limit,
         )
+
         db.session.add(eq)
         db.session.commit()
         flash("Equipment added.", "success")
         return redirect(url_for("equipment_list"))
 
-    # GET -> render empty form
     return render_template("equipment_form.html", equipment=None)
-
 
 
 @app.route("/equipment/<int:equipment_id>/edit", methods=["GET", "POST"])
@@ -319,13 +362,25 @@ def equipment_edit(equipment_id):
         return redirect(url_for("equipment_list"))
 
     eq = Equipment.query.get_or_404(equipment_id)
+
     if request.method == "POST":
-        eq.name = request.form.get("name")
-        eq.category = request.form.get("category")
-        eq.serial_number = request.form.get("serial_number")
-        eq.condition = request.form.get("condition") or "Good"
-        eq.location = request.form.get("location")
-        eq.daily_limit = int(request.form.get("daily_limit") or 1)
+        eq.name = (request.form.get("name") or "").strip()
+        eq.category = (request.form.get("category") or "").strip()
+        eq.serial_number = (request.form.get("serial_number") or "").strip()
+        eq.condition = (request.form.get("condition") or "Good").strip() or "Good"
+        eq.location = (request.form.get("location") or "").strip()
+
+        try:
+            eq.daily_limit = int(request.form.get("daily_limit") or 1)
+        except ValueError:
+            eq.daily_limit = 1
+
+        if not eq.name or not eq.category or not eq.serial_number or not eq.location:
+            flash(
+                "Name, category, serial number, and location are required.",
+                "danger",
+            )
+            return redirect(url_for("equipment_edit", equipment_id=equipment_id))
 
         db.session.commit()
         flash("Equipment updated.", "success")
@@ -344,6 +399,7 @@ def equipment_delete(equipment_id):
     eq = Equipment.query.get_or_404(equipment_id)
     db.session.delete(eq)
     db.session.commit()
+
     flash("Equipment deleted.", "info")
     return redirect(url_for("equipment_list"))
 
@@ -358,25 +414,16 @@ def reservations_list():
     is_staff = current_user.is_staff
 
     if is_staff:
-        reservations = (
-            Reservation.query
-            .order_by(Reservation.start_date)
-            .all()
-        )
+        reservations = Reservation.query.order_by(Reservation.start_date).all()
     else:
         reservations = (
-            Reservation.query
-            .filter_by(user_id=current_user.user_id)
+            Reservation.query.filter_by(user_id=current_user.user_id)
             .order_by(Reservation.start_date)
             .all()
         )
 
-    # JSON-safe summary for React
     reservations_summary = [
-        {
-            "reservation_id": r.reservation_id,
-            "status": r.status or "Pending",
-        }
+        {"reservation_id": r.reservation_id, "status": r.status or "Pending"}
         for r in reservations
     ]
 
@@ -391,55 +438,75 @@ def reservations_list():
 @app.route("/reservations/create", methods=["GET", "POST"])
 @login_required
 def reservations_create():
-    # Students (and staff, if needed) can create reservations
     equipment = Equipment.query.order_by(Equipment.name).all()
 
     if request.method == "POST":
-        # ---- 1) Read selected equipment IDs (multi-select) ----
         equipment_ids = request.form.getlist("equipment_ids")
         if not equipment_ids:
             flash("Please select at least one piece of equipment.", "danger")
             return redirect(url_for("reservations_create"))
 
-        # ---- 2) Read and parse dates ----
         start_str = request.form.get("start_date")
         end_str = request.form.get("end_date")
-
         if not start_str or not end_str:
             flash("Start and end date are required.", "danger")
             return redirect(url_for("reservations_create"))
 
-        # HTML datetime-local gives ISO strings like 2025-11-19T12:00
-        start_date = datetime.fromisoformat(start_str)
-        end_date = datetime.fromisoformat(end_str)
+        try:
+            start_date = datetime.fromisoformat(start_str)
+            end_date = datetime.fromisoformat(end_str)
+        except ValueError:
+            flash("Invalid date format.", "danger")
+            return redirect(url_for("reservations_create"))
 
-        # ---- 3) Create reservation ----
+        if end_date <= start_date:
+            flash("End date must be after start date.", "danger")
+            return redirect(url_for("reservations_create"))
+
+        unavailable = []
+        valid_ids = []
+
+        for eid_str in equipment_ids:
+            if not eid_str.isdigit():
+                continue
+
+            eid = int(eid_str)
+            valid_ids.append(eid)
+
+            if not equipment_is_available(eid, start_date, end_date):
+                eq = Equipment.query.get(eid)
+                unavailable.append(eq.name if eq else f"ID {eid}")
+
+        if unavailable:
+            flash(
+                "Some items are not available for that time window: "
+                + ", ".join(unavailable),
+                "danger",
+            )
+            return redirect(url_for("reservations_create"))
+
         reservation = Reservation(
             user_id=current_user.user_id,
             start_date=start_date,
             end_date=end_date,
             status="Pending",
         )
-        db.session.add(reservation)
-        db.session.flush()  # get reservation.reservation_id
 
-        # ---- 4) Create ReservationItem for each selected equipment ----
-        for eid_str in equipment_ids:
-            try:
-                eid = int(eid_str)
-            except ValueError:
-                continue
-            item = ReservationItem(
-                reservation_id=reservation.reservation_id,
-                equipment_id=eid,
+        db.session.add(reservation)
+        db.session.flush()
+
+        for eid in valid_ids:
+            db.session.add(
+                ReservationItem(
+                    reservation_id=reservation.reservation_id,
+                    equipment_id=eid,
+                )
             )
-            db.session.add(item)
 
         db.session.commit()
         flash("Reservation submitted for approval.", "success")
         return redirect(url_for("reservations_list"))
 
-    # GET
     return render_template("reservation_form.html", equipment=equipment)
 
 
@@ -464,12 +531,14 @@ def reservation_set_status(reservation_id):
 
     reservation = Reservation.query.get_or_404(reservation_id)
     new_status = request.form.get("status")
+
     if new_status not in ("Pending", "Approved", "Denied"):
         flash("Invalid status.", "danger")
         return redirect(url_for("reservations_list"))
 
     reservation.status = new_status
     db.session.commit()
+
     flash(f"Reservation {reservation_id} set to {new_status}.", "success")
     return redirect(url_for("reservations_list"))
 
@@ -485,25 +554,13 @@ def loans_list():
         flash("Only staff may view loans.", "danger")
         return redirect(url_for("dashboard"))
 
-    loans = (
-        Loan.query
-        .join(Reservation)
-        .order_by(Loan.loan_id)
-        .all()
-    )
+    loans = Loan.query.join(Reservation).order_by(Loan.loan_id).all()
     return render_template("loans_list.html", loans=loans)
 
 
 @app.route("/loans/create/<int:reservation_id>", methods=["GET", "POST"])
 @login_required
 def loans_create(reservation_id):
-    """
-    Create a loan from a reservation.
-
-    GET  -> show form where Tech Staff chooses checked-out and due dates.
-    POST -> validate, create loan, set overdue_fee=0 initially.
-            Overdue fee is calculated later when the item is returned.
-    """
     if not current_user.is_staff:
         flash("Only staff may create loans.", "danger")
         return redirect(url_for("loans_list"))
@@ -529,7 +586,6 @@ def loans_create(reservation_id):
             flash("Due date must be after the checked-out time.", "danger")
             return redirect(url_for("loans_create", reservation_id=reservation_id))
 
-        # Create the loan
         loan = Loan(
             reservation_id=reservation.reservation_id,
             checked_out_at=checked_out_at,
@@ -537,15 +593,14 @@ def loans_create(reservation_id):
             overdue_fee=0,
         )
 
-        # Mark reservation as approved when loan is issued
         reservation.status = "Approved"
 
         db.session.add(loan)
         db.session.commit()
+
         flash("Loan created successfully.", "success")
         return redirect(url_for("loans_list"))
 
-    # ---------- GET: show the form with sensible defaults ----------
     now = datetime.utcnow().replace(microsecond=0)
     default_checked_out = now.isoformat(timespec="minutes")
     default_due = (now + timedelta(days=3)).isoformat(timespec="minutes")
@@ -561,14 +616,12 @@ def loans_create(reservation_id):
 @app.route("/loans/return/<int:loan_id>", methods=["POST"])
 @login_required
 def loans_return(loan_id):
-    """Mark a loan as returned and compute overdue fee."""
     if not current_user.is_staff:
         flash("Only staff may update loans.", "danger")
         return redirect(url_for("dashboard"))
 
     loan = Loan.query.get_or_404(loan_id)
 
-    # Already returned -> nothing to do
     if loan.returned_at is not None:
         flash("This loan is already marked as returned.", "info")
         return redirect(url_for("loans_list"))
@@ -576,7 +629,6 @@ def loans_return(loan_id):
     now = datetime.utcnow()
     loan.returned_at = now
 
-    # Overdue fee: $10 per full day after the due date
     overdue_fee = 0
     if loan.due_at and now > loan.due_at:
         days_late = (now.date() - loan.due_at.date()).days
@@ -599,17 +651,12 @@ def loans_return(loan_id):
 def tickets_list():
     if not current_user.is_staff:
         tickets = (
-            ServiceTicket.query
-            .filter_by(opened_by=current_user.user_id)
+            ServiceTicket.query.filter_by(opened_by=current_user.user_id)
             .order_by(ServiceTicket.opened_at.desc())
             .all()
         )
     else:
-        tickets = (
-            ServiceTicket.query
-            .order_by(ServiceTicket.opened_at.desc())
-            .all()
-        )
+        tickets = ServiceTicket.query.order_by(ServiceTicket.opened_at.desc()).all()
 
     return render_template(
         "tickets_list.html",
@@ -623,7 +670,6 @@ def tickets_list():
 def tickets_create():
     equipment = Equipment.query.order_by(Equipment.name).all()
 
-    # staff list only for staff; students don't need it
     users = []
     if current_user.is_staff:
         users = User.query.order_by(User.full_name).all()
@@ -647,8 +693,10 @@ def tickets_create():
             opened_by=current_user.user_id,
             assigned_to=assigned_to,
         )
+
         db.session.add(ticket)
         db.session.commit()
+
         flash("Service ticket created.", "success")
         return redirect(url_for("tickets_list"))
 
@@ -665,7 +713,6 @@ def tickets_create():
 def ticket_detail(ticket_id):
     ticket = ServiceTicket.query.get_or_404(ticket_id)
 
-    # students can only see their own tickets
     if (not current_user.is_staff) and ticket.opened_by != current_user.user_id:
         flash("You are not allowed to view this ticket.", "danger")
         return redirect(url_for("tickets_list"))
@@ -684,8 +731,7 @@ def ticket_detail(ticket_id):
             return redirect(url_for("ticket_detail", ticket_id=ticket.ticket_id))
 
     updates = (
-        TicketUpdate.query
-        .filter_by(ticket_id=ticket.ticket_id)
+        TicketUpdate.query.filter_by(ticket_id=ticket.ticket_id)
         .order_by(TicketUpdate.added_at.desc())
         .all()
     )
@@ -727,6 +773,7 @@ def ticket_edit(ticket_id):
         ticket.closed_at = datetime.utcnow()
 
     db.session.commit()
+
     flash("Ticket updated.", "success")
     return redirect(url_for("ticket_detail", ticket_id=ticket.ticket_id))
 
@@ -738,25 +785,16 @@ def ticket_edit(ticket_id):
 @app.route("/api/stats/reservations_by_equipment")
 @login_required
 def stats_reservations_by_equipment():
-    """
-    Returns JSON of the form:
-    {
-      "labels": ["Camera 1", "Camera 2", ...],
-      "values": [2, 3, ...]
-    }
-    """
-    from sqlalchemy import func
-
     rows = (
-        db.session.query(
-            Equipment.name, func.count(ReservationItem.res_item_id)
-        )
+        db.session.query(Equipment.name, func.count(ReservationItem.res_item_id))
         .join(ReservationItem, ReservationItem.equipment_id == Equipment.equipment_id)
         .group_by(Equipment.equipment_id)
         .all()
     )
+
     labels = [r[0] for r in rows]
     values = [int(r[1]) for r in rows]
+
     return jsonify({"labels": labels, "values": values})
 
 
@@ -766,13 +804,11 @@ def stats_reservations_by_equipment():
 
 @app.cli.command("init-db")
 def init_db():
-    """Initialize database tables."""
     db.create_all()
     print("Database tables created.")
 
 
 if __name__ == "__main__":
-    # Ensure DB exists
     with app.app_context():
         db.create_all()
     app.run(debug=True)

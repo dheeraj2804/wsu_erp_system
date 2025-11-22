@@ -44,14 +44,14 @@ with app.app_context():
     staff1 = User(
         email="tech1@example.com",
         full_name="Tech Staff 1",
-        password_hash=generate_password_hash("password"),
+        password_hash=generate_password_hash("123456"),
         role_id=tech_role.role_id,
         status="active",
     )
     staff2 = User(
         email="tech2@example.com",
         full_name="Tech Staff 2",
-        password_hash=generate_password_hash("password"),
+        password_hash=generate_password_hash("123456"),
         role_id=tech_role.role_id,
         status="active",
     )
